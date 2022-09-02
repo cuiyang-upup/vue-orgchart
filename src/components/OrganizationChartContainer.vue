@@ -88,7 +88,11 @@ export default {
     const el = document.getElementById("box");
 
     // Start monitoring gesture changes on el
-    const at = new AnyTouch(el);
+    const at = new AnyTouch(el, {
+      preventDefault(el) {
+        return 1 == el.touches && el.touches.length;
+      },
+    });
   },
   components: {
     OrganizationChartNode,
