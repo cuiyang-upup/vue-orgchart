@@ -1,18 +1,37 @@
 <template>
-  <div v-bind="{ scopedSlots: $scopedSlots }"
+  <div
+    v-bind="{ scopedSlots: $scopedSlots }"
     class="orgchart-container"
     @wheel="zoom && zoomHandler($event)"
-    @mouseup="pan && panning && panEndHandler($event)"
   >
     <div
       class="orgchart"
-      :style="{ transform: transformVal, cursor: cursorVal }"
-      @mousedown="pan && panStartHandler($event)"
-      @mousemove="pan && panning && panHandler($event)"
+      :style="{
+        top: styles[0].top,
+        left: styles[0].left,
+        zIndex: styles[0].zIndex,
+        transform: `scale(${styles[0].scale}) rotate(${styles[0].angle}deg)`,
+      }"
+      id="box"
+      @panstart="onPanstart($event, 0)"
+      @panmove="onPanmove($event, 0)"
+      @panend="onPanend($event, 0)"
+      @swipe="onSwipe($event, 0)"
+      @press="onPress"
+      @pressup="onPressUp"
+      @pinch="$event.match() && onPinch($event, 0)"
+      @rotate="$event.match() && onRotate($event, 0)"
     >
-      <organization-chart-node :datasource="datasource" :handle-click="handleClick">
-        <template v-for="slot in Object.keys($scopedSlots)" :slot="slot" slot-scope="scope">
-          <slot :name="slot" v-bind="scope"/>
+      <organization-chart-node
+        :datasource="datasource"
+        :handle-click="handleClick"
+      >
+        <template
+          v-for="slot in Object.keys($scopedSlots)"
+          :slot="slot"
+          slot-scope="scope"
+        >
+          <slot :name="slot" v-bind="scope" />
         </template>
       </organization-chart-node>
     </div>
@@ -20,144 +39,294 @@
 </template>
 
 <script>
-import $ from 'jquery'
-import OrganizationChartNode from './OrganizationChartNode.vue'
+import $ from "jquery";
+import OrganizationChartNode from "./OrganizationChartNode.vue";
+import AnyTouch from "any-touch";
 
 export default {
-  name: 'Container',
+  name: "Container",
   props: {
     datasource: {
       type: Object,
-      required: true
+      required: true,
     },
     pan: {
       type: Boolean,
-      required: false
+      required: false,
     },
     zoom: {
       type: Boolean,
-      required: false
+      required: false,
     },
     zoomoutLimit: {
       type: Number,
       required: false,
-      default: 0.5
+      default: 0.5,
     },
     zoominLimit: {
       type: Number,
       required: false,
-      default: 7
-    }
+      default: 7,
+    },
   },
-  data () {
+  data() {
     return {
-      cursorVal: 'default',
+      styles: [{ left: `50px`, top: `160px`, zIndex: 1, scale: 1, angle: 0 }],
+      cursorVal: "default",
       panning: false,
       startX: 0,
       startY: 0,
-      transformVal: ''
-    }
+      startX2: 0,
+      startY2: 0,
+      scale: 1,
+      originScale: "",
+      transformVal: "",
+    };
+  },
+  mounted() {
+    // monitored element
+    const el = document.getElementById("box");
+
+    // Start monitoring gesture changes on el
+    const at = new AnyTouch(el);
   },
   components: {
-    OrganizationChartNode
+    OrganizationChartNode,
   },
   methods: {
-    handleClick (nodeData) {
-      this.$emit('node-click', nodeData);
+    onAfter(e) {
+      if (/^at:/.test(e.name)) return;
+      const { name } = e;
+      this.data = { ...e, type: name };
     },
-    panEndHandler () {
-      this.panning = false
-      this.cursorVal = 'default'
+    add() {
+      const style = {
+        left: `50px`,
+        top: `160px`,
+        zIndex: 1,
+        scale: 1,
+        angle: 0,
+      };
+      this.styles.push(style);
     },
-    panHandler (e) {
-        let newX = 0
-        let newY = 0
-        if (!e.targetTouches) { // pand on desktop
-          newX = e.pageX - this.startX
-          newY = e.pageY - this.startY
-        } else if (e.targetTouches.length === 1) { // pan on mobile device
-          newX = e.targetTouches[0].pageX - this.startX
-          newY = e.targetTouches[0].pageY - this.startY
-        } else if (e.targetTouches.length > 1) {
-          return;
+    onPan(e) {
+      // C('Pan', '#970');
+      // console.log(e);
+    },
+    onRotate(ev, index = 0) {
+      // if(ev.isMatch() ) return;
+      // console.log(`deltaAngle:${ev.deltaAngle}`,ev.phase,ev.pointLength)
+      this.styles[index].angle += ev.deltaAngle;
+    },
+    onPinch(ev, index = 0) {
+      // if(ev.isMatch() ) return;
+      this.styles[index].scale =
+        Math.round(this.styles[index].scale * ev.deltaScale * 100) / 100;
+    },
+    onRotate1(ev, index = 1) {
+      // console.log(`deltaAngle:${ev.deltaAngle}`,ev.phase,ev.pointLength)
+      this.styles[index].angle += ev.deltaAngle;
+    },
+    onTap(ev) {
+      ev.currentTarget.setAttribute("at-phase", ev.phase);
+      ev.currentTarget.setAttribute("at", ev.type);
+      // C(ev.type, "#f10");
+    },
+    onPress(ev) {
+      ev.currentTarget.setAttribute("at-phase", ev.phase);
+      ev.currentTarget.setAttribute("at", ev.type);
+    },
+    onPressUp(ev) {
+      ev.currentTarget.setAttribute("at", ev.type);
+    },
+    onSwipe(ev, index) {
+      const { speedX, speedY } = ev;
+      ev.currentTarget.setAttribute("at", ev.type);
+      this.styles[index].top =
+        Math.round(parseInt(this.styles[index].top) + speedY * 120) + "px";
+      this.styles[index].left =
+        Math.round(parseInt(this.styles[index].left) + speedX * 120) + "px";
+      console.log("swipe");
+    },
+    onPanstart(ev, index) {
+      // C(ev.type, "#726");
+      // console.log(ev);
+      for (const i in this.styles) {
+        this.styles[i].zIndex = i == index ? 2 : 1;
+      }
+    },
+    onPanmove(ev, index) {
+      ev.currentTarget.setAttribute("at", ev.type);
+      // console.log(ev.preventDefault)
+      // console.dir(ev.target)
+      // console.log(ev.deltaX,ev.deltaY)
+      this.styles[index].top =
+        parseInt(this.styles[index].top) + ev.deltaY + "px";
+      this.styles[index].left =
+        parseInt(this.styles[index].left) + ev.deltaX + "px";
+    },
+    onPanend(e, index) {
+      // C(e.type, "#2f3");
+      // console.log(e.isEnd, e);
+    },
+    onStart(ev) {
+      ev.currentTarget.setAttribute("at-phase", "");
+      ev.currentTarget.setAttribute("at", "");
+    },
+    handleClick(nodeData) {
+      this.$emit("node-click", nodeData);
+    },
+    panEndHandler() {
+      this.panning = false;
+      this.cursorVal = "default";
+      (this.startX2 = 0), (this.startY2 = 0);
+    },
+    panHandler(e) {
+      let newX = 0;
+      let newY = 0;
+      if (!e.targetTouches) {
+        // pand on desktop
+        newX = e.pageX - this.startX;
+        newY = e.pageY - this.startY;
+      } else if (e.targetTouches.length === 1) {
+        // pan on mobile device
+        newX = e.targetTouches[0].pageX - this.startX;
+        newY = e.targetTouches[0].pageY - this.startY;
+      } else if (e.targetTouches.length === 2) {
+        var touches = e.touches;
+        var events = touches[0];
+        var events2 = touches[1];
+        // 获取坐标之间的举例
+        var getDistance = function (start, stop) {
+          return Math.hypot(stop.x - start.x, stop.y - start.y);
+        };
+        // 双指缩放比例计算
+        var zoom =
+          getDistance(
+            {
+              x: events.pageX,
+              y: events.pageY,
+            },
+            {
+              x: events2.pageX,
+              y: events2.pageY,
+            }
+          ) /
+          getDistance(
+            {
+              x: this.startX,
+              y: this.startY,
+            },
+            {
+              x: this.startX2,
+              y: this.startY2,
+            }
+          );
+        // 应用在元素上的缩放比例
+        var newScale = this.originScale * zoom;
+        // 最大缩放比例限制
+        if (newScale > 3) {
+          newScale = 3;
         }
-        if (this.transformVal === '') {
-          if (this.transformVal.indexOf('3d') === -1) {
-            this.transformVal = 'matrix(1,0,0,1,' + newX + ',' + newY + ')'
-          } else {
-            this.transformVal = 'matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,' + newX + ', ' + newY + ',0,1)'
-          }
+        // 记住使用的缩放值
+        this.scale = newScale;
+        // 图像应用缩放效果
+        this.setChartScale(this.scale);
+      } else if (e.targetTouches.length > 2) {
+        return;
+      }
+      if (this.transformVal === "") {
+        if (this.transformVal.indexOf("3d") === -1) {
+          this.transformVal = "matrix(1,0,0,1," + newX + "," + newY + ")";
         } else {
-          let matrix = this.transformVal.split(',')
-          if (this.transformVal.indexOf('3d') === -1) {
-            matrix[4] = newX
-            matrix[5] = newY + ')'
-          } else {
-            matrix[12] = newX
-            matrix[13] = newY
-          }
-          this.transformVal = matrix.join(',')
+          this.transformVal =
+            "matrix3d(1,0,0,0,0,1,0,0,0,0,1,0," + newX + ", " + newY + ",0,1)";
         }
-    },
-    panStartHandler (e) {
-      if ($(e.target).closest('.node').length) {
-        this.panning = false
-        return
       } else {
-        this.cursorVal = 'move'
-        this.panning = true
-      }
-      let lastX = 0
-      let lastY = 0
-      if (this.transformVal !== '') {
-        let matrix = this.transformVal.split(',')
-        if (this.transformVal.indexOf('3d') === -1) {
-          lastX = parseInt(matrix[4])
-          lastY = parseInt(matrix[5])
+        let matrix = this.transformVal.split(",");
+        if (this.transformVal.indexOf("3d") === -1) {
+          matrix[4] = newX;
+          matrix[5] = newY + ")";
         } else {
-          lastX = parseInt(matrix[12])
-          lastY = parseInt(matrix[13])
+          matrix[12] = newX;
+          matrix[13] = newY;
+        }
+        this.transformVal = matrix.join(",");
+      }
+    },
+    panStartHandler(e) {
+      if ($(e.target).closest(".node").length) {
+        this.panning = false;
+        return;
+      } else {
+        this.cursorVal = "move";
+        this.panning = true;
+      }
+      let lastX = 0;
+      let lastY = 0;
+      if (this.transformVal !== "") {
+        let matrix = this.transformVal.split(",");
+        if (this.transformVal.indexOf("3d") === -1) {
+          lastX = parseInt(matrix[4]);
+          lastY = parseInt(matrix[5]);
+        } else {
+          lastX = parseInt(matrix[12]);
+          lastY = parseInt(matrix[13]);
         }
       }
-      if (!e.targetTouches) { // pand on desktop
-        this.startX = e.pageX - lastX
-        this.startY = e.pageY - lastY
-      } else if (e.targetTouches.length === 1) { // pan on mobile device
-        this.startX = e.targetTouches[0].pageX - lastX
-        this.startY = e.targetTouches[0].pageY - lastY
+      if (!e.targetTouches) {
+        // pand on desktop
+        this.startX = e.pageX - lastX;
+        this.startY = e.pageY - lastY;
+      } else if (e.targetTouches.length === 1) {
+        // pan on mobile device
+        this.startX = e.targetTouches[0].pageX - lastX;
+        this.startY = e.targetTouches[0].pageY - lastY;
       } else if (e.targetTouches.length > 1) {
-        return
+        this.startX2 = e.touches.pageX;
+        this.startY2 = e.touches.pageY;
+
+        this.originScale = this.scale || 1;
       }
     },
-    setChartScale (newScale) {
-      let matrix = ''
-      let targetScale = 1
-      if (this.transformVal === '') {
-        this.transformVal = 'matrix(' + newScale + ', 0, 0, ' + newScale + ', 0, 0)'
+    setChartScale(newScale) {
+      let matrix = "";
+      let targetScale = 1;
+      if (this.transformVal === "") {
+        this.transformVal =
+          "matrix(" + newScale + ", 0, 0, " + newScale + ", 0, 0)";
       } else {
-        matrix = this.transformVal.split(',')
-        if (this.transformVal.indexOf('3d') === -1) {
-          targetScale = Math.abs(window.parseFloat(matrix[3]) * newScale)
-          if (targetScale > this.zoomoutLimit && targetScale < this.zoominLimit) {
-            matrix[0] = 'matrix(' + targetScale
-            matrix[3] = targetScale
-            this.transformVal = matrix.join(',')
+        matrix = this.transformVal.split(",");
+        if (this.transformVal.indexOf("3d") === -1) {
+          targetScale = Math.abs(window.parseFloat(matrix[3]) * newScale);
+          if (
+            targetScale > this.zoomoutLimit &&
+            targetScale < this.zoominLimit
+          ) {
+            matrix[0] = "matrix(" + targetScale;
+            matrix[3] = targetScale;
+            this.transformVal = matrix.join(",");
           }
         } else {
-          targetScale = Math.abs(window.parseFloat(matrix[5]) * newScale)
-          if (targetScale > this.zoomoutLimit && targetScale < this.zoominLimit) {
-            matrix[0] = 'matrix3d(' + targetScale
-            matrix[5] = targetScale
-            this.transformVal = matrix.join(',')
+          targetScale = Math.abs(window.parseFloat(matrix[5]) * newScale);
+          if (
+            targetScale > this.zoomoutLimit &&
+            targetScale < this.zoominLimit
+          ) {
+            matrix[0] = "matrix3d(" + targetScale;
+            matrix[5] = targetScale;
+            this.transformVal = matrix.join(",");
           }
         }
       }
     },
-    zoomHandler (e) {
-      let newScale  = 1 + (e.deltaY > 0 ? -0.2 : 0.2)
-      this.setChartScale(newScale)
-    }
-  }
+    zoomHandler(e) {
+      let newScale = 1 + (e.deltaY > 0 ? -0.2 : 0.2);
+      this.setChartScale(newScale);
+      this.styles[0].scale =
+        Math.round(this.styles[0].scale * newScale * 100) / 100;
+    },
+  },
 };
 </script>
 
@@ -169,10 +338,11 @@ export default {
   width: calc(100% - 24px);
   border: 2px dashed #aaa;
   border-radius: 5px;
-  overflow: auto;
+  overflow: hidden;
   text-align: center;
 }
 .orgchart {
+  position: absolute;
   box-sizing: border-box;
   display: inline-block;
   min-height: 202px;
