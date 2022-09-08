@@ -1,9 +1,6 @@
 <template>
   <div id="app">
-    <org-chart
-      :datasource="ds"
-      @node-click="selectNode"
-    >
+    <org-chart :datasource="ds" @node-click="selectNode">
       <!--       <template slot-scope="{ nodeData }">
         <b @click="selectNode(nodeData)">{{ nodeData.name }}</b>
       </template> -->
@@ -37,10 +34,7 @@ export default {
                 id: "5",
                 name: "Hei Hei",
                 title: "senior engineer",
-                children: [
-                  { id: "6", name: "Pang Pang", title: "engineer" },
-                  { id: "7", name: "Xiang Xiang", title: "UE engineer" },
-                ],
+                
               },
             ],
           },

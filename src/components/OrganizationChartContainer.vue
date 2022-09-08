@@ -84,8 +84,17 @@ export default {
     };
   },
   mounted() {
+    // middle
+    const top =
+      ($(".orgchart-container").innerHeight() - $("#box").innerHeight()) / 2;
+    const left =
+      ($(".orgchart-container").innerWidth() - $("#box").innerWidth()) / 2;
+
+    this.styles[0].left = `${left}px`;
+    this.styles[0].top = `${top}px`;
     // monitored element
     const el = document.getElementById("box");
+    const orgchartContainer = document.getElementById("orgchart-container");
 
     // Start monitoring gesture changes on el
     const at = new AnyTouch(el, {
