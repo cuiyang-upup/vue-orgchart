@@ -84,14 +84,6 @@ export default {
     };
   },
   mounted() {
-    // middle
-    const top =
-      ($(".orgchart-container").innerHeight() - $("#box").innerHeight()) / 2;
-    const left =
-      ($(".orgchart-container").innerWidth() - $("#box").innerWidth()) / 2;
-
-    this.styles[0].left = `${left}px`;
-    this.styles[0].top = `${top}px`;
     // monitored element
     const el = document.getElementById("box");
     const orgchartContainer = document.getElementById("orgchart-container");
@@ -102,11 +94,30 @@ export default {
         return 1 == el.touches && el.touches.length;
       },
     });
+
+    this.initStyle();
+  },
+  watch: {
+    datasource: function (newVal, oldVal) {
+      console.log(newVal, oldVal, "111");
+      this.$nextTick(() => {
+        this.initStyle();
+      });
+    },
   },
   components: {
     OrganizationChartNode,
   },
   methods: {
+    initStyle() {
+      const top =
+        ($(".orgchart-container").innerHeight() - $("#box").innerHeight()) / 2;
+      const left =
+        ($(".orgchart-container").innerWidth() - $("#box").innerWidth()) / 2;
+
+      this.styles[0].left = `${left}px`;
+      this.styles[0].top = `${top}px`;
+    },
     onAfter(e) {
       if (/^at:/.test(e.name)) return;
       const { name } = e;

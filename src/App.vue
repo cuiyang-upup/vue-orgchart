@@ -28,15 +28,7 @@ export default {
             id: "3",
             name: "Su Miao",
             title: "department manager",
-            children: [
-              { id: "4", name: "Tie Hua", title: "senior engineer" },
-              {
-                id: "5",
-                name: "Hei Hei",
-                title: "senior engineer",
-                
-              },
-            ],
+            children: [{ id: "4", name: "Tie Hua", title: "senior engineer" }],
           },
           { id: "8", name: "Hong Miao", title: "department manager" },
           { id: "9", name: "Chun Miao", title: "department manager" },
@@ -46,7 +38,13 @@ export default {
   },
   methods: {
     selectNode(nodeData) {
-      alert("node " + nodeData.name + " is selected");
+      // alert("node " + nodeData.name + " is selected");
+      this.ds = {
+        id: "1",
+        name: "Lao Lao",
+        title: "general manager",
+        children: [{ id: "2", name: "Bo Miao", title: "department manager" }],
+      };
     },
   },
 };
